@@ -24,3 +24,26 @@ A serverless AWS project that allows admins to send event announcements to subsc
 3. Lambda validates admin role
 4. SNS sends announcement emails
 
+## System Architecture
+
+![Architecture](screenshots/architecture.png)
+
+---
+
+## Cognito Sign In
+
+![Signin](screenshots/signin.png)
+
+---
+
+## Frontend Interface
+
+![Frontend](screenshots/frontend.png)
+
+---
+
+## Email Notification Result
+
+![Email](screenshots/email.png)
+
+
