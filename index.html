@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Event Announcement System</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body style="display:none;">
+  <main class="page-shell">
+    <div class="container">
+      <h1>Announce an Event!</h1>
+
+      <div id="formArea" class="form-area">
+        <label for="title">Event Title</label>
+        <input id="title" type="text" placeholder="Example: AWS Workshop">
+
+        <label for="date">Event Date</label>
+        <input id="date" type="datetime-local">
+
+        <label for="message">Event Details</label>
+        <textarea id="message" rows="5" placeholder="Write event details here"></textarea>
+
+        <button type="button" onclick="sendAnnouncement()">Send Announcement</button>
+        <button id="logoutBtn" class="logout-inline" type="button" onclick="logout()">Click to logout</button>
+      </div>
+
+      <p id="result" aria-live="polite"></p>
+    </div>
+  </main>
+
+  <script>
+    const COGNITO_DOMAIN = "https://eu-north-1txsiqqwat.auth.eu-north-1.amazoncognito.com";
+    const CLIENT_ID = "4akcteo3hdikiivgdfm57uigta";
+    const REDIRECT_URI = "https://d1m7urfou5d91l.cloudfront.net/";
+    const LOGOUT_URI = "https://d1m7urfou5d91l.cloudfront.net/";
+    const API_URL = "https://icqjp0p92k.execute-api.eu-north-1.amazonaws.com/announce";
+
+    let accessToken = null;
+
+    function login() {
+      const loginUrl =
+        COGNITO_DOMAIN + "/login" +
+        "?client_id=" + CLIENT_ID +
+        "&response_type=token" +
+        "&scope=openid+email+profile" +
+        "&redirect_uri=" + encodeURIComponent(REDIRECT_URI);
+
+      window.location.href = loginUrl;
+    }
+
+    function logout() {
+      localStorage.removeItem("accessToken");
+
+      const logoutUrl =
+        COGNITO_DOMAIN + "/logout" +
+        "?client_id=" + CLIENT_ID +
+        "&logout_uri=" + encodeURIComponent(LOGOUT_URI);
+
+      window.location.href = logoutUrl;
+    }
+
+    function syncAccessToken() {
+      const hash = window.location.hash.substring(1);
+      const params = new URLSearchParams(hash);
+      const tokenFromUrl = params.get("access_token");
+
+      if (tokenFromUrl) {
+        localStorage.setItem("accessToken", tokenFromUrl);
+        window.location.hash = "";
+      }
+
+      accessToken = localStorage.getItem("accessToken");
+    }
+
+    function requireLogin() {
+      syncAccessToken();
+
+      if (!accessToken) {
+        login();
+        return;
+      }
+
+      document.body.style.display = "block";
+    }
+
+    async function sendAnnouncement() {
+      syncAccessToken();
+
+      const resultElement = document.getElementById("result");
+
+      if (!accessToken) {
+        resultElement.innerText = "Please log in first.";
+        login();
+        return;
+      }
+
+      const data = {
+        title: document.getElementById("title").value.trim(),
+        date: document.getElementById("date").value,
+        message: document.getElementById("message").value.trim()
+      };
+
+      if (!data.title || !data.date || !data.message) {
+        resultElement.innerText = "Please complete the title, date, and event details.";
+        return;
+      }
+
+      try {
+        const response = await fetch(API_URL, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer " + accessToken
+          },
+          body: JSON.stringify(data)
+        });
+
+        const result = await response.json();
+
+        resultElement.innerText =
+          result.message || result.error || "Request completed.";
+
+      } catch (error) {
+        resultElement.innerText =
+          "Error sending announcement. Check Cognito, API Gateway, or CORS.";
+      }
+    }
+
+    requireLogin();
+  </script>
+</body>
+</html>
